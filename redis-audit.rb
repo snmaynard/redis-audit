@@ -39,7 +39,7 @@ class KeyStats
     @max_idle_time = idle_time if @max_idle_time.nil? || @max_idle_time < idle_time
     @min_serialized_length = serialized_length if @min_serialized_length.nil? || @min_serialized_length > serialized_length
     @max_serialized_length = serialized_length if @max_serialized_length.nil? || @max_serialized_length < serialized_length
-    @max_ttl = expiry_time if ttl != nil && ( @max_ttl == nil || @max_ttl < ttl )
+    @max_ttl = ttl if ttl != nil && ( @max_ttl == nil || @max_ttl < ttl )
     
     @sample_keys[key] = type if @sample_keys.count < 10
   end
