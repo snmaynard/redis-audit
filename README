@@ -1,3 +1,0 @@
-redis-audit
-
-Audits the keys in your redis store to give an idea of memory usage in redis.
