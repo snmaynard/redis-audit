@@ -60,15 +60,15 @@ class RedisAudit
     @sample_size.times do
       key = @redis.randomkey
       pipeline = @redis.pipelined do
+        @redis.debug("object", key)
         @redis.type(key)
         @redis.ttl(key)
-        @redis.debug("object", key)
       end
-      type = pipeline[0]
-      ttl = pipeline[1] == -1 ? nil : pipeline[1]
-      debug_fields = debug_regex.match(pipeline[2])
+      debug_fields = debug_regex.match(pipeline[0])
       serialized_length = debug_fields[1].to_i
       idle_time = debug_fields[2].to_i
+      type = pipeline[1]
+      ttl = pipeline[2] == -1 ? nil : pipeline[2]
       @keys[group_key(key, type)] ||= KeyStats.new
       @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
     end
