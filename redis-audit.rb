@@ -77,6 +77,9 @@ class RedisAudit
   end
   
   def group_key(key, type)
+    # This makes the odds of finding a correct match higher, as mostly these are ids
+    key = key.delete("0-9")
+    
     matching_key = nil
     length_of_best_match = 0
     
@@ -125,7 +128,7 @@ class RedisAudit
         puts "\e[0;1;4m#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)}\e[0m of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{value.max_ttl}"
       end
       
-      puts "Average idle time: \e[0;1;4m#{value.total_idle_time/value.total_instances.to_f}\e[0m seconds - (Max: #{value.max_idle_time} Min:#{value.min_idle_time})"
+      puts "Average idle time: \e[0;1;4m#{(value.total_idle_time/value.total_instances.to_f).round}\e[0m seconds - (Max: #{value.max_idle_time} Min:#{value.min_idle_time})"
       puts
     end
   end
