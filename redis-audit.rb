@@ -91,7 +91,7 @@ class RedisAudit
         length_of_match += 1
       end
       
-      if length_of_match >= key.length/4 && length_of_match > length_of_best_match
+      if length_of_match >= key.length/3 && length_of_match > length_of_best_match
         matching_key = current_key
         length_of_best_match = length_of_match
       end
@@ -100,6 +100,40 @@ class RedisAudit
       return matching_key
     else
       return "#{key}:#{type}"
+    end
+  end
+  
+  def output_duration(seconds)
+    m, s = seconds.divmod(60)
+    h, m = m.divmod(60)
+    d, h = h.divmod(24)
+    
+    output = []
+    output << "#{d} days" if d != 0
+    output << "#{h} hours" if h != 0
+    output << "#{m} minutes" if m != 0
+    output << "#{s} seconds" if s != 0
+    return "0 seconds" if output.count == 0
+    output_string = output.join(", ") 
+    return output_string.sub(/(,)[^,]*$/, " and")
+  end
+  
+  def output_bytes(bytes)
+    kb, b = bytes.divmod(1024)
+    mb, kb = kb.divmod(1024)
+    gb, mb = mb.divmod(1024)
+    
+    if gb != 0
+      result = ((gb + mb/1024.0)*100).round()/100.0
+      return "#{result} GB"
+    elsif mb != 0
+      result = ((mb + kb/1024.0)*100).round()/100.0
+      return "#{result} MB"
+    elsif kb != 0
+      result = ((kb + b/1024.0)*100).round()/100.0
+      return "#{result} kB"
+    else
+      return "#{b} bytes"
     end
   end
   
@@ -121,14 +155,14 @@ class RedisAudit
       puts "Found #{value.total_instances} keys containing #{common_type}s, like:"
       puts "\e[0;33m#{value.sample_keys.keys.join(", ")}\e[0m"
       puts
-      puts "These keys use \e[0;1;4m#{make_proportion_percentage(value.total_serialized_length/complete_serialized_length.to_f)}\e[0m of the total sampled memory (#{value.total_serialized_length} bytes)"
+      puts "These keys use \e[0;1;4m#{make_proportion_percentage(value.total_serialized_length/complete_serialized_length.to_f)}\e[0m of the total sampled memory (#{output_bytes(value.total_serialized_length)})"
       if value.total_expirys_set == 0
         puts "\e[0;1;4mNone\e[0m of these keys expire"
       else
-        puts "\e[0;1;4m#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)}\e[0m of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{value.max_ttl}"
+        puts "\e[0;1;4m#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)}\e[0m of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{output_duration(value.max_ttl)}"
       end
       
-      puts "Average idle time: \e[0;1;4m#{(value.total_idle_time/value.total_instances.to_f).round}\e[0m seconds - (Max: #{value.max_idle_time} Min:#{value.min_idle_time})"
+      puts "Average idle time: \e[0;1;4m#{output_duration(value.total_idle_time/value.total_instances.to_f)}\e[0m - (Max: #{output_duration(value.max_idle_time)} Min:#{output_duration(value.min_idle_time)})"
       puts
     end
   end
