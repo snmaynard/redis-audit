@@ -75,30 +75,36 @@ class RedisAudit
   end
   
   def group_key(key, type)
-    return key.delete("0-9") + ":#{type}"
+    return key.delete("0-9a-fA-F") + ":#{type}"
   end
   
   def output_stats
     key_regex = /^(.*):(.*)$/
     complete_serialized_length = @keys.map {|key, value| value.total_serialized_length }.reduce(:+)
+    sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
     
     puts "DB has #{@dbsize} keys"
     puts
-    puts "Stats for #{@keys.count} sampled keys..."
+    puts "Found #{@keys.count} key groups"
     puts
-    @keys.each do |key, value|
+    sorted_keys.each do |key|
+      value = @keys[key]
       key_fields = key_regex.match(key)
       common_key = key_fields[1]
       common_type = key_fields[2]
       
       puts "=============================================================================="
-      puts "Keys of the form #{common_key} with type #{common_type}"
-      puts "For example:"
-      puts value.sample_keys.keys.join(", ")
+      puts "Found #{value.total_instances} keys containing #{common_type}s, like:"
+      puts "\e[0;33m#{value.sample_keys.keys.join(", ")}\e[0m"
       puts
-      puts "#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)} of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{value.max_ttl}"
-      puts "These keys use #{make_proportion_percentage(value.total_serialized_length/complete_serialized_length.to_f)} of the total sampled memory (#{value.total_serialized_length} bytes)"
-      puts "Average idle time: #{value.total_idle_time/value.total_instances.to_f} seconds - (Max: #{value.max_idle_time} Min:#{value.min_idle_time})"
+      puts "These keys use \e[0;1;4m#{make_proportion_percentage(value.total_serialized_length/complete_serialized_length.to_f)}\e[0m of the total sampled memory (#{value.total_serialized_length} bytes)"
+      if value.total_expirys_set == 0
+        puts "\e[0;1;4mNone\e[0m of these keys expire"
+      else
+        puts "\e[0;1;4m#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)}\e[0m of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{value.max_ttl}"
+      end
+      
+      puts "Average idle time: \e[0;1;4m#{value.total_idle_time/value.total_instances.to_f}\e[0m seconds - (Max: #{value.max_idle_time} Min:#{value.min_idle_time})"
       puts
     end
   end
