@@ -2,8 +2,6 @@
 require 'rubygems'
 require 'redis'
 
-key_group_regex_list = []
-
 # Container class for stats around a key group
 class KeyStats
   attr_accessor :total_instances, 
@@ -51,6 +49,9 @@ end
 class RedisAudit
   @@key_regex = /^(.*):(.*)$/
   
+  # Configure regular expressions here if you need to guarantee that certain keys are grouped together
+  @@key_group_regex_list = []
+  
   def initialize(redis, sample_size)
     @redis = redis
     @keys = Hash.new
@@ -83,7 +84,7 @@ class RedisAudit
   # matches at least a third of the key from the start, and groups those together. It also 
   # removes any numbers as they are (generally) ids. 
   def group_key(key, type)
-    key_group_regex_list.each_with_index do |regex, index|
+    @@key_group_regex_list.each_with_index do |regex, index|
       return "#{regex.to_s}:#{type}" if regex.match(key)
     end
     
