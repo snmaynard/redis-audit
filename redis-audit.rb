@@ -78,6 +78,7 @@ class RedisAudit
   
   def group_key(key, type)
     matching_key = nil
+    length_of_best_match = 0
     
     @keys.keys.each do |current_key|
       length_of_match = 0
@@ -87,9 +88,9 @@ class RedisAudit
         length_of_match += 1
       end
       
-      if length_of_match >= key.length/2
+      if length_of_match >= key.length/4 && length_of_match > length_of_best_match
         matching_key = current_key
-        break
+        length_of_best_match = length_of_match
       end
     end
     if matching_key != nil && @@key_regex.match(matching_key)[2] == type
