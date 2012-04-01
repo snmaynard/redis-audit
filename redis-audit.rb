@@ -46,6 +46,8 @@ class KeyStats
 end
 
 class RedisAudit
+  @@key_regex = /^(.*):(.*)$/
+  
   def initialize(redis, sample_size)
     @redis = redis
     @keys = Hash.new
@@ -75,11 +77,29 @@ class RedisAudit
   end
   
   def group_key(key, type)
-    return key.delete("0-9a-fA-F") + ":#{type}"
+    matching_key = nil
+    
+    @keys.keys.each do |current_key|
+      length_of_match = 0
+      
+      current_key.length.times do |index|
+        break if key[index] != current_key[index]
+        length_of_match += 1
+      end
+      
+      if length_of_match >= key.length/2
+        matching_key = current_key
+        break
+      end
+    end
+    if matching_key != nil && @@key_regex.match(matching_key)[2] == type
+      return matching_key
+    else
+      return "#{key}:#{type}"
+    end
   end
   
   def output_stats
-    key_regex = /^(.*):(.*)$/
     complete_serialized_length = @keys.map {|key, value| value.total_serialized_length }.reduce(:+)
     sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
     
@@ -89,7 +109,7 @@ class RedisAudit
     puts
     sorted_keys.each do |key|
       value = @keys[key]
-      key_fields = key_regex.match(key)
+      key_fields = @@key_regex.match(key)
       common_key = key_fields[1]
       common_type = key_fields[2]
       
