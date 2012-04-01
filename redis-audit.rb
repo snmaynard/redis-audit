@@ -2,6 +2,9 @@
 require 'rubygems'
 require 'redis'
 
+key_group_regex_list = []
+
+# Container class for stats around a key group
 class KeyStats
   attr_accessor :total_instances, 
                 :total_idle_time, 
@@ -76,7 +79,14 @@ class RedisAudit
     end
   end
   
+  # This function defines what keys are grouped together. Currently it looks for a key that
+  # matches at least a third of the key from the start, and groups those together. It also 
+  # removes any numbers as they are (generally) ids. 
   def group_key(key, type)
+    key_group_regex_list.each_with_index do |regex, index|
+      return "#{regex.to_s}:#{type}" if regex.match(key)
+    end
+    
     # This makes the odds of finding a correct match higher, as mostly these are ids
     key = key.delete("0-9")
     
@@ -91,12 +101,13 @@ class RedisAudit
         length_of_match += 1
       end
       
-      if length_of_match >= key.length/3 && length_of_match > length_of_best_match
+      # Minimum length of match is 1/3 of the new key length
+      if length_of_match >= key.length/3 && length_of_match > length_of_best_match && @@key_regex.match(current_key)[2] == type
         matching_key = current_key
         length_of_best_match = length_of_match
       end
     end
-    if matching_key != nil && @@key_regex.match(matching_key)[2] == type
+    if matching_key != nil
       return matching_key
     else
       return "#{key}:#{type}"
@@ -114,8 +125,7 @@ class RedisAudit
     output << "#{m} minutes" if m != 0
     output << "#{s} seconds" if s != 0
     return "0 seconds" if output.count == 0
-    output_string = output.join(", ") 
-    return output_string.sub(/(,)[^,]*$/, " and")
+    return output.join(", ") 
   end
   
   def output_bytes(bytes)
@@ -142,6 +152,7 @@ class RedisAudit
     sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
     
     puts "DB has #{@dbsize} keys"
+    puts "Sampled #{output_bytes(complete_serialized_length)} of redis memory"
     puts
     puts "Found #{@keys.count} key groups"
     puts
