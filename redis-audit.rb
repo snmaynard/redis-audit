@@ -82,10 +82,10 @@ class RedisAudit
   
   def audit_keys
     debug_regex = /serializedlength:(\d*).*lru_seconds_idle:(\d*)/
-    @dbsize = @redis.dbsize
+    @dbsize = @redis.dbsize.to_i
     
     if @sample_size == 0
-      @sample_size = 0.1 * @dbsize
+      @sample_size = (0.1 * @dbsize).to_i
     end
     
     @sample_size.times do
