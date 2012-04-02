@@ -218,7 +218,6 @@ class RedisAudit
     format = summary_columns.map{|c| "%-#{c[:width]}s" }.join(' | ')
     
     puts "=============================================================================="
-    puts
     puts "Summary"
     puts
     puts format.tr(' |', '-+') % summary_columns.map{|c| '-'*c[:width] }
