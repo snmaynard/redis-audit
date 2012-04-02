@@ -5,12 +5,12 @@ metrics around those groups of keys to help you spot where efficiencies can be m
 
 ##Example
 
-If you have a Redis database that contains two sets of keys "user_profile_#{user_id}" and "notification_#{user_id}", this script will
+If you have a Redis database that contains two sets of keys "user\_profile\_#{user\_id}" and "notification\_#{user\_id}", this script will
 help you work out which group of keys is taking up more memory. It will also help you spot keys that should have an expiry that don't, as well
 as providing you with statistics on how often keys are accessed within each group.
 
 ##Usage
-  redis-audit.rb <host> <port> <dbnum> <sample_size>
+  redis-audit.rb [host] [port] [dbnum] [sample_size]
 
 ##Outputs
   Auditing 127.0.0.1:6379 db:3 sampling 26000 keys
