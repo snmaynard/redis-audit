@@ -1,4 +1,20 @@
 #!/usr/bin/ruby
+
+#    Copyright (c) 2012, Simon Maynard
+#    http://snmaynard.com
+#    
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
 require 'rubygems'
 require 'redis'
 
@@ -153,7 +169,7 @@ class RedisAudit
     sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
     
     puts "DB has #{@dbsize} keys"
-    puts "Sampled #{output_bytes(complete_serialized_length)} of redis memory"
+    puts "Sampled #{output_bytes(complete_serialized_length)} of Redis memory"
     puts
     puts "Found #{@keys.count} key groups"
     puts
@@ -174,7 +190,7 @@ class RedisAudit
         puts "\e[0;1;4m#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)}\e[0m of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{output_duration(value.max_ttl)}"
       end
       
-      puts "Average idle time: \e[0;1;4m#{output_duration(value.total_idle_time/value.total_instances)}\e[0m - (Max: #{output_duration(value.max_idle_time)} Min:#{output_duration(value.min_idle_time)})"
+      puts "Average last accessed time: \e[0;1;4m#{output_duration(value.total_idle_time/value.total_instances)}\e[0m - (Max: #{output_duration(value.max_idle_time)} Min:#{output_duration(value.min_idle_time)})"
       puts
     end
   end
