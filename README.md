@@ -12,10 +12,10 @@ as providing you with statistics on how often keys are accessed within each grou
 ##Usage
     redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
   
-- Host: Generally this is 127.0.0.1 (Please note, running it remotely will cause the script to take significantly longer)
-- Port: The port to connect to (e.g. 6379)
-- DBNum: The Redis to connect to (e.g. 0)
-- Sample size: This optional parameter controls how many keys to sample. I recommend starting with 10, then going to 100 initially. This
+- **Host**: Generally this is 127.0.0.1 (Please note, running it remotely will cause the script to take significantly longer)
+- **Port**: The port to connect to (e.g. 6379)
+- **DBNum**: The Redis to connect to (e.g. 0)
+- **Sample size**: This optional parameter controls how many keys to sample. I recommend starting with 10, then going to 100 initially. This
 will enable you to see that keys are being grouped properly. If you omit this parameter the script samples 10% of your keys.
 
 ##Outputs
