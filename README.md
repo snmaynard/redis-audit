@@ -13,7 +13,7 @@ as providing you with statistics on how often keys are accessed within each grou
   redis-audit.rb [host] [port] [dbnum] [sample_size]
 
 ##Outputs
-  Auditing 127.0.0.1:6379 db:3 sampling 26000 keys
+  Auditing 127.0.0.1:6379 db:0 sampling 26000 keys
   DB has 8951491 keys
   Sampled 32.88 MB of Redis memory
 
