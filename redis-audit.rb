@@ -213,7 +213,7 @@ class RedisAudit
       :width => 17
     },{
       :title => "Last Access Time",
-      :width => 30
+      :width => 50
     }]
     format = summary_columns.map{|c| "%-#{c[:width]}s" }.join(' | ')
     
@@ -226,7 +226,7 @@ class RedisAudit
     puts format.tr(' |', '-+') % summary_columns.map{|c| '-'*c[:width] }
     sorted_keys.reverse.each do |key|
       value = @keys[key]
-      puts format % [value.sample_keys.keys[0], make_proportion_percentage(value.total_serialized_length/complete_serialized_length.to_f), make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f), output_duration(value.min_idle_time)]
+      puts format % [value.sample_keys.keys[0][0...50], make_proportion_percentage(value.total_serialized_length/complete_serialized_length.to_f), make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f), output_duration(value.min_idle_time)[0...50]]
     end
     puts format.tr(' |', '-+') % summary_columns.map{|c| '-'*c[:width] }
   end
