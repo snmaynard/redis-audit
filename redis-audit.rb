@@ -89,6 +89,7 @@ class RedisAudit
     end
     
     if @sample_size < @dbsize
+      puts "Sampling #{@sample_size} keys..."
       sample_progress = @sample_size/10
     
       @sample_size.times do |index|
@@ -101,7 +102,9 @@ class RedisAudit
     else
       sample_progress = @dbsize/10
       
+      puts "Getting a list of all #{@dbsize} keys..."
       keys = @redis.keys("*")
+      puts "Auditing #{@dbsize} keys..."
       keys.each_with_index do |key, index|
         audit_key(key)
         if sample_progress > 0 && (index + 1) % sample_progress == 0
