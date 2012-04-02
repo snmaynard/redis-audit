@@ -87,8 +87,9 @@ class RedisAudit
     if @sample_size == 0
       @sample_size = (0.1 * @dbsize).to_i
     end
+    sample_progress = @sample_size/10
     
-    @sample_size.times do
+    @sample_size.times do |index|
       key = @redis.randomkey
       pipeline = @redis.pipelined do
         @redis.debug("object", key)
@@ -102,6 +103,9 @@ class RedisAudit
       ttl = pipeline[2] == -1 ? nil : pipeline[2]
       @keys[group_key(key, type)] ||= KeyStats.new
       @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
+      if (index + 1) % sample_progress == 0
+        puts "#{index + 1} keys sampled - #{(((index + 1)/@sample_size.to_f) * 100).round}% complete"
+      end
     end
   end
   
