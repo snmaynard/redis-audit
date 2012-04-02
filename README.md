@@ -10,7 +10,7 @@ help you work out which group of keys is taking up more memory. It will also hel
 as providing you with statistics on how often keys are accessed within each group.
 
 ##Usage
-  redis-audit.rb [host] [port] [dbnum] [sample_size]
+  redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
 
 ##Outputs
   Auditing 127.0.0.1:6379 db:0 sampling 26000 keys
