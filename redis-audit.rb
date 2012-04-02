@@ -69,6 +69,7 @@ end
 
 class RedisAudit
   @@key_regex = /^(.*):(.*)$/
+  @@debug_regex = /serializedlength:(\d*).*lru_seconds_idle:(\d*)/
   
   # Configure regular expressions here if you need to guarantee that certain keys are grouped together
   @@key_group_regex_list = []
@@ -81,32 +82,48 @@ class RedisAudit
   end
   
   def audit_keys
-    debug_regex = /serializedlength:(\d*).*lru_seconds_idle:(\d*)/
     @dbsize = @redis.dbsize.to_i
     
     if @sample_size == 0
       @sample_size = (0.1 * @dbsize).to_i
     end
-    sample_progress = @sample_size/10
     
-    @sample_size.times do |index|
-      key = @redis.randomkey
-      pipeline = @redis.pipelined do
-        @redis.debug("object", key)
-        @redis.type(key)
-        @redis.ttl(key)
+    if @sample_size < @dbsize
+      sample_progress = @sample_size/10
+    
+      @sample_size.times do |index|
+        key = @redis.randomkey
+        audit_key(key)
+        if sample_progress > 0 && (index + 1) % sample_progress == 0
+          puts "#{index + 1} keys sampled - #{(((index + 1)/@sample_size.to_f) * 100).round}% complete"
+        end
       end
-      debug_fields = debug_regex.match(pipeline[0])
-      serialized_length = debug_fields[1].to_i
-      idle_time = debug_fields[2].to_i
-      type = pipeline[1]
-      ttl = pipeline[2] == -1 ? nil : pipeline[2]
-      @keys[group_key(key, type)] ||= KeyStats.new
-      @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
-      if (index + 1) % sample_progress == 0
-        puts "#{index + 1} keys sampled - #{(((index + 1)/@sample_size.to_f) * 100).round}% complete"
+    else
+      sample_progress = @dbsize/10
+      
+      keys = @redis.keys("*")
+      keys.each_with_index do |key, index|
+        audit_key(key)
+        if sample_progress > 0 && (index + 1) % sample_progress == 0
+          puts "#{index + 1} keys sampled - #{(((index + 1)/@dbsize.to_f) * 100).round}% complete"
+        end
       end
     end
+  end
+  
+  def audit_key(key)
+    pipeline = @redis.pipelined do
+      @redis.debug("object", key)
+      @redis.type(key)
+      @redis.ttl(key)
+    end
+    debug_fields = @@debug_regex.match(pipeline[0])
+    serialized_length = debug_fields[1].to_i
+    idle_time = debug_fields[2].to_i
+    type = pipeline[1]
+    ttl = pipeline[2] == -1 ? nil : pipeline[2]
+    @keys[group_key(key, type)] ||= KeyStats.new
+    @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
   end
   
   # This function defines what keys are grouped together. Currently it looks for a key that

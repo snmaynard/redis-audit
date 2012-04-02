@@ -16,7 +16,9 @@ as providing you with statistics on how often keys are accessed within each grou
 - **Port**: The port to connect to (e.g. 6379)
 - **DBNum**: The Redis to connect to (e.g. 0)
 - **Sample size**: This optional parameter controls how many keys to sample. I recommend starting with 10, then going to 100 initially. This
-will enable you to see that keys are being grouped properly. If you omit this parameter the script samples 10% of your keys.
+will enable you to see that keys are being grouped properly. If you omit this parameter the script samples 10% of your keys. If the sample size is
+greater than the number of keys in the database the script will walk all the keys in the Redis database. **DO NOT** run this with a lot of keys on 
+a production master database. Keys * will block for a long time and cause timeouts!
 
 ##Outputs
     Auditing 127.0.0.1:6379 db:0 sampling 26000 keys
