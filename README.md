@@ -58,6 +58,14 @@ The key grouping algorithm is a good default, but you may require more control o
 If the key being sampled matches a regular expression, it is grouped with all the keys that match that regex.
 
     @@key_group_regex_list = [/notification/,/user_profile/]
+
+If you don't configure the regular expressions, the script has to find a good match for each key that it finds, which can
+take a significant amount of time, depending on the number of types of keys. If you find the script takes too long to run, 
+I recommend setting up the regular expressions. Even if you only set the regular expressions for 50% of the keys it will encounter,
+the speedup will still be noticeable.
+
+*Please note:* If your keys are appended with a namespace, rather than prepended, then you will have to configure a full set
+of regular expressions. 
   
 ##Other Redis Audit Tools
 - [Redis Sampler](https://github.com/antirez/redis-sampler) - Samples keys for statistics around how often you each Redis value type, and how big the value is. By Antirez.
