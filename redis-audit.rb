@@ -96,7 +96,7 @@ class RedisAudit
         key = @redis.randomkey
         audit_key(key)
         if sample_progress > 0 && (index + 1) % sample_progress == 0
-          puts "#{index + 1} keys sampled - #{(((index + 1)/@sample_size.to_f) * 100).round}% complete"
+          puts "#{index + 1} keys sampled - #{(((index + 1)/@sample_size.to_f) * 100).round}% complete - #{Time.now}"
         end
       end
     else
@@ -108,7 +108,7 @@ class RedisAudit
       keys.each_with_index do |key, index|
         audit_key(key)
         if sample_progress > 0 && (index + 1) % sample_progress == 0
-          puts "#{index + 1} keys sampled - #{(((index + 1)/@dbsize.to_f) * 100).round}% complete"
+          puts "#{index + 1} keys sampled - #{(((index + 1)/@dbsize.to_f) * 100).round}% complete - #{Time.now}"
         end
       end
     end
