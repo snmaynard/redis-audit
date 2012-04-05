@@ -65,7 +65,11 @@ I recommend setting up the regular expressions. Even if you only set the regular
 the speedup will still be noticeable.
 
 **Please note:** If your keys are appended with a namespace, rather than prepended, then you will have to configure a full set
-of regular expressions. 
+of regular expressions.
+
+##Memory Usage
+The memory usage that the script calculates is based on the serialized length as reported by Redis using the DEBUG OBJECT command.
+This memory usage is not equal to the resident memory taken by the key, but is (hopefully) proportional to it.
   
 ##Other Redis Audit Tools
 - [Redis Sampler](https://github.com/antirez/redis-sampler) - Samples keys for statistics around how often you each Redis value type, and how big the value is. By Antirez.
