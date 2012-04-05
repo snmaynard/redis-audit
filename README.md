@@ -64,7 +64,7 @@ take a significant amount of time, depending on the number of types of keys. If 
 I recommend setting up the regular expressions. Even if you only set the regular expressions for 50% of the keys it will encounter,
 the speedup will still be noticeable.
 
-*Please note:* If your keys are appended with a namespace, rather than prepended, then you will have to configure a full set
+**Please note:** If your keys are appended with a namespace, rather than prepended, then you will have to configure a full set
 of regular expressions. 
   
 ##Other Redis Audit Tools
