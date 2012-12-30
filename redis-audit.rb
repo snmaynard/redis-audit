@@ -127,6 +127,8 @@ class RedisAudit
     ttl = pipeline[2] == -1 ? nil : pipeline[2]
     @keys[group_key(key, type)] ||= KeyStats.new
     @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
+  rescue Redis::CommandError
+    $stderr.puts "Skipping key #{key}"
   end
   
   # This function defines what keys are grouped together. Currently it looks for a key that
