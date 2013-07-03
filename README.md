@@ -3,6 +3,10 @@
 This script samples a number of the Redis keys in a database and then groups them with other *similar* looking keys. It then displays key 
 metrics around those groups of keys to help you spot where efficiencies can be made in the memory usage of your Redis database.
 
+##Installation
+   `bundle install` will take care of everything!
+
+
 ##Example
 
 If you have a Redis database that contains two sets of keys "user\_profile\_#{user\_id}" and "notification\_#{user\_id}", this script will
