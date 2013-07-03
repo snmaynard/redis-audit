@@ -14,7 +14,7 @@ help you work out which group of keys is taking up more memory. It will also hel
 as providing you with statistics on how often keys are accessed within each group.
 
 ##Usage
-    redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
+    bundle exec ruby redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
   
 - **Host**: Generally this is 127.0.0.1 (Please note, running it remotely will cause the script to take significantly longer)
 - **Port**: The port to connect to (e.g. 6379)
