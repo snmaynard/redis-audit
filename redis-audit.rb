@@ -85,7 +85,7 @@ class RedisAudit
   def audit_keys
     @dbsize = @redis.dbsize.to_i
     
-    if @sample_size == 0
+    if @sample_size == 0 || @sample_size.nil?
       @sample_size = (0.1 * @dbsize).to_i
     end
     
@@ -204,6 +204,10 @@ class RedisAudit
     complete_serialized_length = @keys.map {|key, value| value.total_serialized_length }.reduce(:+)
     sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
     
+    if complete_serialized_length == 0 || complete_serialized_length.nil?
+      complete_serialized_length = 0
+    end
+
     puts "DB has #{@dbsize} keys"
     puts "Sampled #{output_bytes(complete_serialized_length)} of Redis memory"
     puts
