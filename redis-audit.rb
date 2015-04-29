@@ -22,6 +22,7 @@
 
 require 'bundler/setup'
 require 'redis'
+require 'optparse'
 
 # Container class for stats around a key group
 class KeyStats
@@ -261,18 +262,52 @@ class RedisAudit
   end
 end
 
-if ARGV.length < 3 || ARGV.length > 4
-    puts "Usage: redis-audit.rb <host> <port> <dbnum> <(optional)sample_size>"
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: redis-audit.rb [options]"
+
+  opts.on("-u", "--url URL", "Connection Url") do |url|
+    options[:url] = url
+  end
+
+  opts.on("-h", "--host HOST", "Redis Host") do |host|
+    options[:host] = host
+  end
+
+  opts.on("-p", "--port PORT", "Redis Port") do |port|
+    options[:port] = port
+  end
+
+  opts.on("-d", "--dbnum DBNUM", "Redis DB Number") do |dbnum|
+    options[:dbnum] = dbnum
+  end
+
+  opts.on('--help', 'Displays Help') do
+    puts opts
+    exit
+  end
+end.parse!
+
+if options[:host].nil? && options[:url].nil?
+  if ARGV.length < 3 || ARGV.length > 4
+    puts "Run redis-audit.rb --help for information on how to use this tool."
     exit 1
+  else
+    options[:host] = ARGV[0]
+    options[:port] = ARGV[1].to_i
+    options[:dbnum] = ARGV[2].to_i
+    sample_size = ARGV[3].to_i
+  end
 end
 
-host = ARGV[0]
-port = ARGV[1].to_i
-db = ARGV[2].to_i
-sample_size = ARGV[3].to_i
+if !options[:url].nil?
+  redis = Redis.new(:url => options[:url])
+else
+  redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+end
 
-redis = Redis.new(:host => host, :port => port, :db => db)
+
 auditor = RedisAudit.new(redis, sample_size)
-puts "Auditing #{host}:#{port} db:#{db} sampling #{sample_size} keys"
+#puts "Auditing #{options[:host]}:#{options[:port]} dbnum:#{options[:dbnum]} sampling #{sample_size} keys"
 auditor.audit_keys
 auditor.output_stats
