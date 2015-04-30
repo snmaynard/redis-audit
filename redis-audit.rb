@@ -286,6 +286,10 @@ OptionParser.new do |opts|
     options[:dbnum] = dbnum
   end
 
+  opts.on("-s", "--sample NUM", "Sample Size") do |sample_size|
+    options[:sample_size] = sample_size.to_i
+  end
+
   opts.on('--help', 'Displays Help') do
     puts opts
     exit
@@ -300,7 +304,7 @@ if options[:host].nil? && options[:url].nil?
     options[:host] = ARGV[0]
     options[:port] = ARGV[1].to_i
     options[:dbnum] = ARGV[2].to_i
-    sample_size = ARGV[3].to_i
+    options[:sample_size] = ARGV[3].to_i
   end
 end
 
@@ -310,8 +314,15 @@ else
   redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
 end
 
+if options[:sample_size].nil?
+  options[:sample_size] = 0
+end
 
-auditor = RedisAudit.new(redis, sample_size)
-#puts "Auditing #{options[:host]}:#{options[:port]} dbnum:#{options[:dbnum]} sampling #{sample_size} keys"
+auditor = RedisAudit.new(redis, options[:sample_size])
+if !options[:url].nil?
+  puts "Auditing #{options[:url]} sampling #{options[:sample_size]} keys"
+else
+  puts "Auditing #{options[:host]}:#{options[:port]} dbnum:#{options[:dbnum]} sampling #{options[:sample_size]} keys"
+end
 auditor.audit_keys
 auditor.output_stats
