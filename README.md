@@ -14,7 +14,20 @@ help you work out which group of keys is taking up more memory. It will also hel
 as providing you with statistics on how often keys are accessed within each group.
 
 ##Usage
-    bundle exec ruby redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
+
+The script provides two different methods of being run, one with argument decleration and a legacy method based on order of the arguments passed in.    
+
+The legacy option looks like this:
+
+    redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
+
+You can also specify the arguements with declerations, which also adds the ability to use a Redis URL and pass in authentication credientials:
+
+    redis-audit.rb -h/--host [host] -p/--port[port] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
+    
+    or
+    
+    redis-audit.rb -u/--url [url] -s/--sample [(optional)sample_size]
   
 - **Host**: Generally this is 127.0.0.1 (Please note, running it remotely will cause the script to take significantly longer)
 - **Port**: The port to connect to (e.g. 6379)
@@ -23,6 +36,9 @@ as providing you with statistics on how often keys are accessed within each grou
 will enable you to see that keys are being grouped properly. If you omit this parameter the script samples 10% of your keys. If the sample size is
 greater than the number of keys in the database the script will walk all the keys in the Redis database. **DO NOT** run this with a lot of keys on 
 a production master database. Keys * will block for a long time and cause timeouts!
+- **Url**: Follows the normal syntax for Redis Urls
+
+`redis-audit.rb --help` will print out the argument options as well.
 
 ##Outputs
     Auditing 127.0.0.1:6379 db:0 sampling 26000 keys
