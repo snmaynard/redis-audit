@@ -22,6 +22,7 @@
 
 require 'bundler/setup'
 require 'redis'
+require 'optparse'
 
 # Container class for stats around a key group
 class KeyStats
@@ -84,7 +85,7 @@ class RedisAudit
   def audit_keys
     @dbsize = @redis.dbsize.to_i
     
-    if @sample_size == 0
+    if @sample_size == 0 || @sample_size.nil?
       @sample_size = (0.1 * @dbsize).to_i
     end
     
@@ -203,6 +204,10 @@ class RedisAudit
     complete_serialized_length = @keys.map {|key, value| value.total_serialized_length }.reduce(:+)
     sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
     
+    if complete_serialized_length == 0 || complete_serialized_length.nil?
+      complete_serialized_length = 0
+    end
+
     puts "DB has #{@dbsize} keys"
     puts "Sampled #{output_bytes(complete_serialized_length)} of Redis memory"
     puts
@@ -261,18 +266,78 @@ class RedisAudit
   end
 end
 
-if ARGV.length < 3 || ARGV.length > 4
-    puts "Usage: redis-audit.rb <host> <port> <dbnum> <(optional)sample_size>"
+# take in our command line options and parse
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: redis-audit.rb [options]"
+
+  opts.on("-u", "--url URL", "Connection Url") do |url|
+    options[:url] = url
+  end
+
+  opts.on("-h", "--host HOST", "Redis Host") do |host|
+    options[:host] = host
+  end
+
+  opts.on("-p", "--port PORT", "Redis Port") do |port|
+    options[:port] = port
+  end
+
+  opts.on("-d", "--dbnum DBNUM", "Redis DB Number") do |dbnum|
+    options[:dbnum] = dbnum
+  end
+
+  opts.on("-s", "--sample NUM", "Sample Size") do |sample_size|
+    options[:sample_size] = sample_size.to_i
+  end
+
+  opts.on('--help', 'Displays Help') do
+    puts opts
+    exit
+  end
+end.parse!
+
+# allows non-paramaterized/backwards compatible command line
+if options[:host].nil? && options[:url].nil?
+  if ARGV.length < 3 || ARGV.length > 4
+    puts "Run redis-audit.rb --help for information on how to use this tool."
     exit 1
+  else
+    options[:host] = ARGV[0]
+    options[:port] = ARGV[1].to_i
+    options[:dbnum] = ARGV[2].to_i
+    options[:sample_size] = ARGV[3].to_i
+  end
 end
 
-host = ARGV[0]
-port = ARGV[1].to_i
-db = ARGV[2].to_i
-sample_size = ARGV[3].to_i
+# create our connection to the redis db
+if !options[:url].nil?
+  redis = Redis.new(:url => options[:url])
+else
+  # with url empty, assume that --host has been set, but since we don't enforce
+  # port or dbnum to be set, allow sane defaults
+  # set default port if no port is set
+  if options[:port].nil?
+    options[:port] = 6379
+  end
+  # set default dbnum if no dbnum is set
+  if options[:dbnum].nil?
+    options[:dbnum] = 0
+  end
+  redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+end
 
-redis = Redis.new(:host => host, :port => port, :db => db)
-auditor = RedisAudit.new(redis, sample_size)
-puts "Auditing #{host}:#{port} db:#{db} sampling #{sample_size} keys"
+# set sample_size to a default if not passed in
+if options[:sample_size].nil?
+  options[:sample_size] = 0
+end
+
+# audit our data
+auditor = RedisAudit.new(redis, options[:sample_size])
+if !options[:url].nil?
+  puts "Auditing #{options[:url]} sampling #{options[:sample_size]} keys"
+else
+  puts "Auditing #{options[:host]}:#{options[:port]} dbnum:#{options[:dbnum]} sampling #{options[:sample_size]} keys"
+end
 auditor.audit_keys
 auditor.output_stats
