@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 #    Copyright (c) 2012, Simon Maynard
 #    http://snmaynard.com
