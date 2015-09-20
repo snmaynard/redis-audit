@@ -77,7 +77,7 @@ class RedisAudit
   
   def initialize(redis, sample_size)
     @redis = redis
-    @keys = Hash.new
+    @keys = Hash.new {|h,k| h[k] = KeyStats.new}
     @sample_size = sample_size
     @dbsize = 0
   end
@@ -126,7 +126,6 @@ class RedisAudit
     idle_time = debug_fields[2].to_i
     type = pipeline[1]
     ttl = pipeline[2] == -1 ? nil : pipeline[2]
-    @keys[group_key(key, type)] ||= KeyStats.new
     @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
   rescue Redis::CommandError
     $stderr.puts "Skipping key #{key}"
