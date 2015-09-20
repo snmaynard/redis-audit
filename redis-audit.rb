@@ -144,8 +144,11 @@ class RedisAudit
     
     matching_key = nil
     length_of_best_match = 0
+    threshold = key.length / 3
+    matching_portion = nil
     
     @keys.keys.each do |current_key|
+      next if matching_key && !current_key.start_with?(matching_portion) # we know it wont be longer
       length_of_match = 0
       
       current_key.length.times do |index|
@@ -154,9 +157,10 @@ class RedisAudit
       end
       
       # Minimum length of match is 1/3 of the new key length
-      if length_of_match >= key.length/3 && length_of_match > length_of_best_match && @@key_regex.match(current_key)[2] == type
+      if length_of_match >= threshold && length_of_match > length_of_best_match && @@key_regex.match(current_key)[2] == type
         matching_key = current_key
         length_of_best_match = length_of_match
+        matching_portion = matching_key[0...length_of_match]
       end
     end
     if matching_key != nil
