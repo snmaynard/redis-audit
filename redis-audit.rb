@@ -146,13 +146,15 @@ class RedisAudit
     length_of_best_match = 0
     threshold = key.length / 3
     matching_portion = nil
+    key_codepoints = key.codepoints
     
     @keys.keys.each do |current_key|
       next if matching_key && !current_key.start_with?(matching_portion) # we know it wont be longer
       length_of_match = 0
       
-      current_key.length.times do |index|
-        break if key[index] != current_key[index]
+      current_key.each_codepoint.with_index do |codepoint, index|
+        next if index < length_of_best_match
+        break unless key_codepoints[index] == codepoint
         length_of_match += 1
       end
       
