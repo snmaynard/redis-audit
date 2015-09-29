@@ -77,7 +77,7 @@ class RedisAudit
   
   def initialize(redis, sample_size)
     @redis = redis
-    @keys = Hash.new
+    @keys = Hash.new {|h,k| h[k] = KeyStats.new}
     @sample_size = sample_size
     @dbsize = 0
   end
@@ -126,7 +126,6 @@ class RedisAudit
     idle_time = debug_fields[2].to_i
     type = pipeline[1]
     ttl = pipeline[2] == -1 ? nil : pipeline[2]
-    @keys[group_key(key, type)] ||= KeyStats.new
     @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
   rescue Redis::CommandError
     $stderr.puts "Skipping key #{key}"
@@ -145,19 +144,25 @@ class RedisAudit
     
     matching_key = nil
     length_of_best_match = 0
+    threshold = key.length / 3
+    matching_portion = nil
+    key_codepoints = key.codepoints
     
     @keys.keys.each do |current_key|
+      next if matching_key && !current_key.start_with?(matching_portion) # we know it wont be longer
       length_of_match = 0
       
-      current_key.length.times do |index|
-        break if key[index] != current_key[index]
+      current_key.each_codepoint.with_index do |codepoint, index|
+        next if index < length_of_best_match
+        break unless key_codepoints[index] == codepoint
         length_of_match += 1
       end
       
       # Minimum length of match is 1/3 of the new key length
-      if length_of_match >= key.length/3 && length_of_match > length_of_best_match && @@key_regex.match(current_key)[2] == type
+      if length_of_match >= threshold && length_of_match > length_of_best_match && @@key_regex.match(current_key)[2] == type
         matching_key = current_key
         length_of_best_match = length_of_match
+        matching_portion = matching_key[0...length_of_match]
       end
     end
     if matching_key != nil
