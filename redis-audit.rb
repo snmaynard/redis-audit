@@ -292,6 +292,10 @@ OptionParser.new do |opts|
     options[:dbnum] = dbnum
   end
 
+  opts.on("-a", "--passwd PASSWORD", "Redis Password") do |passwd|
+    options[:passwd] = passwd
+  end
+
   opts.on("-s", "--sample NUM", "Sample Size") do |sample_size|
     options[:sample_size] = sample_size.to_i
   end
@@ -304,7 +308,7 @@ end.parse!
 
 # allows non-paramaterized/backwards compatible command line
 if options[:host].nil? && options[:url].nil?
-  if ARGV.length < 3 || ARGV.length > 4
+  if ARGV.length < 4 || ARGV.length > 5
     puts "Run redis-audit.rb --help for information on how to use this tool."
     exit 1
   else
@@ -312,6 +316,7 @@ if options[:host].nil? && options[:url].nil?
     options[:port] = ARGV[1].to_i
     options[:dbnum] = ARGV[2].to_i
     options[:sample_size] = ARGV[3].to_i
+    options[:passwd] = ARGV[4]
   end
 end
 
@@ -329,7 +334,12 @@ else
   if options[:dbnum].nil?
     options[:dbnum] = 0
   end
-  redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+
+  if options[:passwd].nil?
+    redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+  else
+    redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum], :password => options[:passwd])
+  end
 end
 
 # set sample_size to a default if not passed in
