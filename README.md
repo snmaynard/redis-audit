@@ -1,7 +1,8 @@
 #Redis-audit
 
 This script samples a number of the Redis keys in a database and then groups them with other *similar* looking keys. It then displays key 
-metrics around those groups of keys to help you spot where efficiencies can be made in the memory usage of your Redis database.
+metrics around those groups of keys to help you spot where efficiencies can be made in the memory usage of your Redis database.  
+_Warning_: The script cannot be used with AWS Elasticache Redis instances, as the debug command is restricted.
 
 ##Installation
    `bundle install` will take care of everything!
