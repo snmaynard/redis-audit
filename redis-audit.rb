@@ -22,6 +22,7 @@
 
 require 'bundler/setup'
 require 'redis'
+require 'redis/connection/hiredis'
 require 'optparse'
 
 # Container class for stats around a key group
