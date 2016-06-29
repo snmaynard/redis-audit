@@ -22,7 +22,7 @@ The legacy option looks like this:
 
     redis-audit.rb [host] [port] [password] [dbnum] [(optional)sample_size]
 
-You can also specify the arguements with declerations, which also adds the ability to use a Redis URL and pass in authentication credientials:
+You can also specify the arguments with declarations, which also adds the ability to use a Redis URL and pass in authentication credentials:
 
     redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
     
