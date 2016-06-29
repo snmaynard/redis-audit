@@ -20,11 +20,11 @@ The script provides two different methods of being run, one with argument decler
 
 The legacy option looks like this:
 
-    redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
+    redis-audit.rb [host] [port] [password] [dbnum] [(optional)sample_size]
 
-You can also specify the arguements with declerations, which also adds the ability to use a Redis URL and pass in authentication credientials:
+You can also specify the arguments with declarations, which also adds the ability to use a Redis URL and pass in authentication credentials:
 
-    redis-audit.rb -h/--host [host] -p/--port[port] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
+    redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
     
     or
     
@@ -32,7 +32,8 @@ You can also specify the arguements with declerations, which also adds the abili
   
 - **Host**: Generally this is 127.0.0.1 (Please note, running it remotely will cause the script to take significantly longer)
 - **Port**: The port to connect to (e.g. 6379)
-- **DBNum**: The Redis to connect to (e.g. 0)
+- **Password**: The Redis password if authentication is required
+- **DBNum**: The Redis database to connect to (e.g. 0)
 - **Sample size**: This optional parameter controls how many keys to sample. I recommend starting with 10, then going to 100 initially. This
 will enable you to see that keys are being grouped properly. If you omit this parameter the script samples 10% of your keys. If the sample size is
 greater than the number of keys in the database the script will walk all the keys in the Redis database. **DO NOT** run this with a lot of keys on 
