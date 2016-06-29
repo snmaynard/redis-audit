@@ -20,11 +20,11 @@ The script provides two different methods of being run, one with argument decler
 
 The legacy option looks like this:
 
-    redis-audit.rb [host] [port] [dbnum] [(optional)sample_size]
+    redis-audit.rb [host] [port] [password] [dbnum] [(optional)sample_size]
 
 You can also specify the arguements with declerations, which also adds the ability to use a Redis URL and pass in authentication credientials:
 
-    redis-audit.rb -h/--host [host] -p/--port[port] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
+    redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
     
     or
     
