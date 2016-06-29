@@ -335,7 +335,12 @@ else
   if options[:dbnum].nil?
     options[:dbnum] = 0
   end
-  redis = Redis.new(:host => options[:host], :port => options[:port], :password => options[:password], :db => options[:dbnum])
+  # don't pass the password argument unless it is set
+  if options[:password].nil?
+    redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+  else
+    redis = Redis.new(:host => options[:host], :port => options[:port], :password => options[:password], :db => options[:dbnum])
+  end
 end
 
 # set sample_size to a default if not passed in
