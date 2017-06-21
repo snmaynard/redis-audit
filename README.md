@@ -1,20 +1,20 @@
-#Redis-audit
+# Redis-audit
 
 This script samples a number of the Redis keys in a database and then groups them with other *similar* looking keys. It then displays key 
 metrics around those groups of keys to help you spot where efficiencies can be made in the memory usage of your Redis database.  
 _Warning_: The script cannot be used with AWS Elasticache Redis instances, as the debug command is restricted.
 
-##Installation
+## Installation
    `bundle install` will take care of everything!
 
 
-##Example
+## Example
 
 If you have a Redis database that contains two sets of keys "user\_profile\_#{user\_id}" and "notification\_#{user\_id}", this script will
 help you work out which group of keys is taking up more memory. It will also help you spot keys that should have an expiry that don't, as well
 as providing you with statistics on how often keys are accessed within each group.
 
-##Usage
+## Usage
 
 The script provides two different methods of being run, one with argument decleration and a legacy method based on order of the arguments passed in.    
 
@@ -42,7 +42,7 @@ a production master database. Keys * will block for a long time and cause timeou
 
 `redis-audit.rb --help` will print out the argument options as well.
 
-##Outputs
+## Outputs
     Auditing 127.0.0.1:6379 db:0 sampling 26000 keys
     DB has 8951491 keys
     Sampled 32.88 MB of Redis memory
@@ -75,7 +75,7 @@ a production master database. Keys * will block for a long time and cause timeou
     user_profile_3897016                               | 11.86%       | 99.98%            | 20 seconds  
     ---------------------------------------------------+--------------+-------------------+---------------------------------------------------  
 
-##Key Grouping Algorithm
+## Key Grouping Algorithm
 The key grouping algorithm is a good default, but you may require more control over it. There is an array of regular expressions that can be used to help force a group.
 If the key being sampled matches a regular expression, it is grouped with all the keys that match that regex.
 
@@ -89,9 +89,9 @@ the speedup will still be noticeable.
 **Please note:** If your keys are appended with a namespace, rather than prepended, then you will have to configure a full set
 of regular expressions.
 
-##Memory Usage
+## Memory Usage
 The memory usage that the script calculates is based on the serialized length as reported by Redis using the DEBUG OBJECT command.
 This memory usage is not equal to the resident memory taken by the key, but is (hopefully) proportional to it.
   
-##Other Redis Audit Tools
+## Other Redis Audit Tools
 - [Redis Sampler](https://github.com/antirez/redis-sampler) - Samples keys for statistics around how often you each Redis value type, and how big the value is. By Antirez.
