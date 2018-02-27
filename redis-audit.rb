@@ -2,22 +2,22 @@
 
 #    Copyright (c) 2012, Simon Maynard
 #    http://snmaynard.com
-#    
-#    Permission is hereby granted, free of charge, to any person obtaining a 
-#    copy of this software and associated documentation files (the "Software"), 
-#    to deal in the Software without restriction, including without limitation 
-#    the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-#    and/or sell copies of the Software, and to permit persons to whom the 
+#
+#    Permission is hereby granted, free of charge, to any person obtaining a
+#    copy of this software and associated documentation files (the "Software"),
+#    to deal in the Software without restriction, including without limitation
+#    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+#    and/or sell copies of the Software, and to permit persons to whom the
 #    Software is furnished to do so, subject to the following conditions:
 #
-#    The above copyright notice and this permission notice shall be included 
+#    The above copyright notice and this permission notice shall be included
 #    in all copies or substantial portions of the Software.
 #
-#    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-#    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-#    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-#    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-#    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
+#    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+#    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 #    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 require 'bundler/setup'
@@ -27,8 +27,8 @@ require 'optparse'
 
 # Container class for stats around a key group
 class KeyStats
-  attr_accessor :total_instances, 
-                :total_idle_time, 
+  attr_accessor :total_instances,
+                :total_idle_time,
                 :total_serialized_length,
                 :total_expirys_set,
                 :min_serialized_length,
@@ -37,34 +37,36 @@ class KeyStats
                 :max_idle_time,
                 :max_ttl,
                 :sample_keys
-  
+
   def initialize
     @total_instances = 0
     @total_idle_time = 0
     @total_serialized_length = 0
     @total_expirys_set = 0
-    
+
     @min_serialized_length = nil
     @max_serialized_length = nil
     @min_idle_time = nil
     @max_idle_time = nil
     @max_ttl = nil
-    
+
     @sample_keys = {}
+
+    @has_scrub = RUBY_VERSION.to_f >= 2.1
   end
-  
+
   def add_stats_for_key(key, type, idle_time, serialized_length, ttl)
     @total_instances += 1
     @total_idle_time += idle_time
     @total_expirys_set += 1 if ttl != nil
     @total_serialized_length += serialized_length
-    
+
     @min_idle_time = idle_time if @min_idle_time.nil? || @min_idle_time > idle_time
     @max_idle_time = idle_time if @max_idle_time.nil? || @max_idle_time < idle_time
     @min_serialized_length = serialized_length if @min_serialized_length.nil? || @min_serialized_length > serialized_length
     @max_serialized_length = serialized_length if @max_serialized_length.nil? || @max_serialized_length < serialized_length
     @max_ttl = ttl if ttl != nil && ( @max_ttl == nil || @max_ttl < ttl )
-    
+
     @sample_keys[key] = type if @sample_keys.count < 10
   end
 end
@@ -72,28 +74,28 @@ end
 class RedisAudit
   @@key_regex = /^(.*):(.*)$/
   @@debug_regex = /serializedlength:(\d*).*lru_seconds_idle:(\d*)/
-  
+
   # Configure regular expressions here if you need to guarantee that certain keys are grouped together
   @@key_group_regex_list = []
-  
+
   def initialize(redis, sample_size)
     @redis = redis
     @keys = Hash.new {|h,k| h[k] = KeyStats.new}
     @sample_size = sample_size
     @dbsize = 0
   end
-  
+
   def audit_keys
     @dbsize = @redis.dbsize.to_i
-    
+
     if @sample_size == 0 || @sample_size.nil?
       @sample_size = (0.1 * @dbsize).to_i
     end
-    
+
     if @sample_size < @dbsize
       puts "Sampling #{@sample_size} keys..."
       sample_progress = @sample_size/10
-    
+
       @sample_size.times do |index|
         key = @redis.randomkey
         audit_key(key)
@@ -102,10 +104,12 @@ class RedisAudit
         end
       end
     else
-      sample_progress = @dbsize/10
-      
+      sample_progress = @dbsize/20
+
       puts "Getting a list of all #{@dbsize} keys..."
-      keys = @redis.keys("*")
+      keys = fetch_all_keys
+      puts "\n"
+
       puts "Auditing #{@dbsize} keys..."
       keys.each_with_index do |key, index|
         audit_key(key)
@@ -115,7 +119,22 @@ class RedisAudit
       end
     end
   end
-  
+
+  def fetch_all_keys
+    keys = []
+    cursor = 0
+    batch_size = 1000
+
+    loop do
+      print '.'
+      cursor, keys_batch = @redis.scan(cursor, match: "*", count: batch_size)
+      keys.push(*keys_batch) if keys_batch.size > 0
+      break if cursor.to_i == 0
+    end
+
+    keys
+  end
+
   def audit_key(key)
     pipeline = @redis.pipelined do
       @redis.debug("object", key)
@@ -128,37 +147,37 @@ class RedisAudit
     type = pipeline[1]
     ttl = pipeline[2] == -1 ? nil : pipeline[2]
     @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
-  rescue Redis::CommandError
-    $stderr.puts "Skipping key #{key}"
+  rescue Redis::CommandError => e
+    $stderr.puts "Skipping key #{key} (#{e.message})"
   end
-  
+
   # This function defines what keys are grouped together. Currently it looks for a key that
-  # matches at least a third of the key from the start, and groups those together. It also 
-  # removes any numbers as they are (generally) ids. 
+  # matches at least a third of the key from the start, and groups those together. It also
+  # removes any numbers as they are (generally) ids.
   def group_key(key, type)
     @@key_group_regex_list.each_with_index do |regex, index|
       return "#{regex.to_s}:#{type}" if regex.match(key)
     end
-    
+
     # This makes the odds of finding a correct match higher, as mostly these are ids
-    key = key.delete("0-9")
-    
+    key = normalize_key(key)
+
     matching_key = nil
     length_of_best_match = 0
     threshold = key.length / 3
     matching_portion = nil
     key_codepoints = key.codepoints.to_a
-    
+
     @keys.keys.each do |current_key|
       next if matching_key && !current_key.start_with?(matching_portion) # we know it wont be longer
       length_of_match = 0
-      
+
       current_key.each_codepoint.with_index do |codepoint, index|
         next if index < length_of_best_match
         break unless key_codepoints[index] == codepoint
         length_of_match += 1
       end
-      
+
       # Minimum length of match is 1/3 of the new key length
       if length_of_match >= threshold && length_of_match > length_of_best_match && @@key_regex.match(current_key)[2] == type
         matching_key = current_key
@@ -172,26 +191,37 @@ class RedisAudit
       return "#{key}:#{type}"
     end
   end
-  
+
+  def normalize_key(key)
+    scrubbed_key =
+      if @has_scrub
+        key.scrub
+      else
+        key.chars.select(&:valid_encoding?).join
+      end
+
+    scrubbed_key.delete("0-9")
+  end
+
   def output_duration(seconds)
     m, s = seconds.divmod(60)
     h, m = m.divmod(60)
     d, h = h.divmod(24)
-    
+
     output = []
     output << "#{d} days" if d != 0
     output << "#{h} hours" if h != 0
     output << "#{m} minutes" if m != 0
     output << "#{s} seconds" if s != 0
     return "0 seconds" if output.count == 0
-    return output.join(", ") 
+    return output.join(", ")
   end
-  
+
   def output_bytes(bytes)
     kb, b = bytes.divmod(1024)
     mb, kb = kb.divmod(1024)
     gb, mb = mb.divmod(1024)
-    
+
     if gb != 0
       result = ((gb + mb/1024.0)*100).round()/100.0
       return "#{result} GB"
@@ -205,11 +235,11 @@ class RedisAudit
       return "#{b} bytes"
     end
   end
-  
+
   def output_stats
     complete_serialized_length = @keys.map {|key, value| value.total_serialized_length }.reduce(:+)
     sorted_keys = @keys.keys.sort{|a,b| @keys[a].total_serialized_length <=> @keys[b].total_serialized_length}
-    
+
     if complete_serialized_length == 0 || complete_serialized_length.nil?
       complete_serialized_length = 0
     end
@@ -224,7 +254,7 @@ class RedisAudit
       key_fields = @@key_regex.match(key)
       common_key = key_fields[1]
       common_type = key_fields[2]
-      
+
       puts "=============================================================================="
       puts "Found #{value.total_instances} keys containing #{common_type}s, like:"
       puts "\e[0;33m#{value.sample_keys.keys.join(", ")}\e[0m"
@@ -235,7 +265,7 @@ class RedisAudit
       else
         puts "\e[0;1;4m#{make_proportion_percentage(value.total_expirys_set/value.total_instances.to_f)}\e[0m of these keys expire (#{value.total_expirys_set}), with maximum ttl of #{output_duration(value.max_ttl)}"
       end
-      
+
       puts "Average last accessed time: \e[0;1;4m#{output_duration(value.total_idle_time/value.total_instances)}\e[0m - (Max: #{output_duration(value.max_idle_time)} Min:#{output_duration(value.min_idle_time)})"
       puts
     end
@@ -253,7 +283,7 @@ class RedisAudit
       :width => 50
     }]
     format = summary_columns.map{|c| "%-#{c[:width]}s" }.join(' | ')
-    
+
     puts "=============================================================================="
     puts "Summary"
     puts
@@ -266,7 +296,7 @@ class RedisAudit
     end
     puts format.tr(' |', '-+') % summary_columns.map{|c| '-'*c[:width] }
   end
-  
+
   def make_proportion_percentage(value)
     return "#{(value * 10000).round/100.0}%"
   end
