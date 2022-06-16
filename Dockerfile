@@ -5,6 +5,7 @@ COPY . /redis-audit
 RUN set -ex; \
     apk --no-cache add build-base; \
     cd redis-audit; \
+    bundle update --bundler; \
     bundle install; \
     apk del build-base;
 
