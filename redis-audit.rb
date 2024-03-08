@@ -22,6 +22,7 @@
 
 require 'bundler/setup'
 require 'redis'
+require 'redis-clustering'
 require 'hiredis'
 require 'optparse'
 
@@ -301,6 +302,11 @@ OptionParser.new do |opts|
     options[:sample_size] = sample_size.to_i
   end
 
+  # Note: Not present in backwards compatible command line
+  opts.on("-c", "--cluster", "Cluster Mode") do |cluster|
+    options[:cluster] = cluster
+  end
+
   opts.on('--help', 'Displays Help') do
     puts opts
     exit
@@ -323,7 +329,11 @@ end
 
 # create our connection to the redis db
 if !options[:url].nil?
-  redis = Redis.new(:url => options[:url])
+  if options[:cluster].nil?
+    redis = Redis.new(:url => options[:url])
+  else
+    redis = Redis::Cluster.new(nodes: [url], replica: true)
+  end
 else
   # with url empty, assume that --host has been set, but since we don't enforce
   # port or dbnum to be set, allow sane defaults
@@ -335,11 +345,22 @@ else
   if options[:dbnum].nil?
     options[:dbnum] = 0
   end
+  # Build a url for use with connecting in cluster mode
+  url = "redis://#{options[:host]}:#{options[:port]}/#{options[:dbnum]}"
   # don't pass the password argument unless it is set
   if options[:password].nil?
-    redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+    if options[:cluster].nil?
+      redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+    else
+      redis = Redis::Cluster.new(nodes: [url], replica: true)
+    end
   else
-    redis = Redis.new(:host => options[:host], :port => options[:port], :password => options[:password], :db => options[:dbnum])
+    if options[:cluster].nil?
+      redis = Redis.new(:host => options[:host], :port => options[:port], :password => options[:password], :db => options[:dbnum])
+    else
+      puts "Password not supported with cluster option"
+      exit 1
+    end
   end
 end
 
