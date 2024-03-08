@@ -24,7 +24,7 @@ The legacy option looks like this:
 
 You can also specify the arguments with declarations, which also adds the ability to use a Redis URL and pass in authentication credentials:
 
-    redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
+    redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size] -c/--cluster (optional)
     
     or
     
@@ -39,6 +39,7 @@ will enable you to see that keys are being grouped properly. If you omit this pa
 greater than the number of keys in the database the script will walk all the keys in the Redis database. **DO NOT** run this with a lot of keys on 
 a production master database. Keys * will block for a long time and cause timeouts!
 - **Url**: Follows the normal syntax for Redis Urls
+- **Cluster Mode**: Connect to a cluster endpoint
 
 `redis-audit.rb --help` will print out the argument options as well.
 
