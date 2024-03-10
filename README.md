@@ -2,7 +2,7 @@
 
 This script samples a number of the Redis keys in a database and then groups them with other *similar* looking keys. It then displays key 
 metrics around those groups of keys to help you spot where efficiencies can be made in the memory usage of your Redis database.  
-_Warning_: The script cannot be used with AWS Elasticache Redis instances, as the debug command is restricted.
+_Warning_: The script cannot provide idle time on AWS Elasticache Redis instances, as the debug command is restricted.  Use the memory flag instead.
 
 ## Installation
    `bundle install` will take care of everything!
@@ -24,7 +24,7 @@ The legacy option looks like this:
 
 You can also specify the arguments with declarations, which also adds the ability to use a Redis URL and pass in authentication credentials:
 
-    redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size]
+    redis-audit.rb -h/--host [host] -p/--port [port] -a/--password [password] -d/--dbnum [dbnum] -s/--sample [(optional)sample_size] -c/--cluster (optional) -m/--memory (optional)
     
     or
     
@@ -39,6 +39,8 @@ will enable you to see that keys are being grouped properly. If you omit this pa
 greater than the number of keys in the database the script will walk all the keys in the Redis database. **DO NOT** run this with a lot of keys on 
 a production master database. Keys * will block for a long time and cause timeouts!
 - **Url**: Follows the normal syntax for Redis Urls
+- **Cluster Mode**: Connect to a cluster endpoint
+- **Memory Flag**: Use the memory command for key sizing.  Idle time will not be available if this flag is used.
 
 `redis-audit.rb --help` will print out the argument options as well.
 

@@ -22,7 +22,8 @@
 
 require 'bundler/setup'
 require 'redis'
-require 'redis/connection/hiredis'
+require 'redis-clustering'
+require 'hiredis'
 require 'optparse'
 
 # Container class for stats around a key group
@@ -76,11 +77,12 @@ class RedisAudit
   # Configure regular expressions here if you need to guarantee that certain keys are grouped together
   @@key_group_regex_list = []
   
-  def initialize(redis, sample_size)
+  def initialize(redis, sample_size, use_memory)
     @redis = redis
     @keys = Hash.new {|h,k| h[k] = KeyStats.new}
     @sample_size = sample_size
     @dbsize = 0
+    @use_memory = use_memory
   end
   
   def audit_keys
@@ -117,14 +119,23 @@ class RedisAudit
   end
   
   def audit_key(key)
-    pipeline = @redis.pipelined do
-      @redis.debug("object", key)
-      @redis.type(key)
-      @redis.ttl(key)
+    pipeline = @redis.pipelined {|p|
+      if @use_memory
+        p.memory("usage", key)
+      else
+        p.debug("object", key)
+      end
+      p.type(key)
+      p.ttl(key)
+    }
+    if @use_memory
+      serialized_length = pipeline[0].nil? ? 0 : pipeline[0]
+      idle_time = 1
+    else
+      debug_fields = @@debug_regex.match(pipeline[0])
+      serialized_length = debug_fields[1].to_i
+      idle_time = debug_fields[2].to_i
     end
-    debug_fields = @@debug_regex.match(pipeline[0])
-    serialized_length = debug_fields[1].to_i
-    idle_time = debug_fields[2].to_i
     type = pipeline[1]
     ttl = pipeline[2] == -1 ? nil : pipeline[2]
     @keys[group_key(key, type)].add_stats_for_key(key, type, idle_time, serialized_length, ttl)
@@ -301,6 +312,15 @@ OptionParser.new do |opts|
     options[:sample_size] = sample_size.to_i
   end
 
+  # Note: Cluster mode and memory flag not present in backwards compatible command line
+  opts.on("-c", "--cluster", "Cluster Mode") do |cluster|
+    options[:cluster] = cluster
+  end
+
+  opts.on("-m", "--memory", "Memory Flag") do |mem|
+    options[:memory] = mem
+  end
+
   opts.on('--help', 'Displays Help') do
     puts opts
     exit
@@ -323,7 +343,11 @@ end
 
 # create our connection to the redis db
 if !options[:url].nil?
-  redis = Redis.new(:url => options[:url])
+  if options[:cluster].nil?
+    redis = Redis.new(:url => options[:url])
+  else
+    redis = Redis::Cluster.new(nodes: [url], replica: true)
+  end
 else
   # with url empty, assume that --host has been set, but since we don't enforce
   # port or dbnum to be set, allow sane defaults
@@ -335,11 +359,22 @@ else
   if options[:dbnum].nil?
     options[:dbnum] = 0
   end
+  # Build a url for use with connecting in cluster mode
+  url = "redis://#{options[:host]}:#{options[:port]}/#{options[:dbnum]}"
   # don't pass the password argument unless it is set
   if options[:password].nil?
-    redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+    if options[:cluster].nil?
+      redis = Redis.new(:host => options[:host], :port => options[:port], :db => options[:dbnum])
+    else
+      redis = Redis::Cluster.new(nodes: [url], replica: true)
+    end
   else
-    redis = Redis.new(:host => options[:host], :port => options[:port], :password => options[:password], :db => options[:dbnum])
+    if options[:cluster].nil?
+      redis = Redis.new(:host => options[:host], :port => options[:port], :password => options[:password], :db => options[:dbnum])
+    else
+      puts "Password not supported with cluster option"
+      exit 1
+    end
   end
 end
 
@@ -348,8 +383,14 @@ if options[:sample_size].nil?
   options[:sample_size] = 0
 end
 
+# Use the Redis debug command by default
+# TODO: We could try a debug call, and if it fails fall back to memory command
+if options[:memory].nil?
+  options[:memory] = false
+end
+
 # audit our data
-auditor = RedisAudit.new(redis, options[:sample_size])
+auditor = RedisAudit.new(redis, options[:sample_size], options[:memory])
 if !options[:url].nil?
   puts "Auditing #{options[:url]} sampling #{options[:sample_size]} keys"
 else
